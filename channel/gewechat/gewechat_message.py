@@ -1,6 +1,7 @@
 import base64
 import uuid
 import re
+import json
 from bridge.context import ContextType
 from channel.chat_message import ChatMessage
 from common.log import logger
@@ -381,7 +382,30 @@ class GeWeChatMessage(ChatMessage):
                         self.ctype = ContextType.SHARING
                         url = appmsg.find('url').text if appmsg.find('url') is not None else ""
                         self.content = url
-
+                elif msg_type is not None and msg_type.text == '51':  # 可能是小视频
+                    logger.debug(f"appmsg {ET.dump(appmsg)}")
+                    finderFeed = appmsg.find('finderFeed')
+                    self.ctype = ContextType.TEXT
+                    self.content = content_xml
+                    if finderFeed:
+                        objectId = finderFeed.find('objectId').text
+                        objectNonceId = finderFeed.find('objectNonceId').text
+                        logger.info(f"objectId: {objectId}, objectNonceId: {objectNonceId}")
+                        if objectId and objectNonceId:
+                            self.ctype = ContextType.VIDEO
+                            #获取真实视频号 url
+                            url = f"{conf().get("parse_video_url_prefix")}oid={objectId}&nid={objectNonceId}"
+                            response = requests.get(url)
+                            logger.info(f"获取到的真实视频号 url: {response.text}")
+                            data = json.loads(response.text)
+                            content = data.get('data', {}).get('url', '')
+                            logger.info(f"获取到的真实视频号 url: {content}")
+                            self.content = content
+                            self.title = data.get('data', {}).get('title', '')
+                elif msg_type is not None and msg_type.text == '6':  # 文件消息
+                    logger.debug(f"appmsg {ET.dump(appmsg)}")
+                    pass
+                
                 else:  # 其他消息类型，暂时不解析，直接返回XML
                     self.ctype = ContextType.TEXT
                     self.content = content_xml
