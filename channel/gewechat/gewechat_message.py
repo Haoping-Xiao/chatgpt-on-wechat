@@ -394,7 +394,7 @@ class GeWeChatMessage(ChatMessage):
                         if objectId and objectNonceId:
                             self.ctype = ContextType.VIDEO
                             #获取真实视频号 url
-                            url = f"{conf().get("parse_video_url_prefix")}oid={objectId}&nid={objectNonceId}"
+                            url = f"{conf().get('parse_video_url_prefix')}oid={objectId}&nid={objectNonceId}"
                             response = requests.get(url)
                             logger.info(f"获取到的真实视频号 url: {response.text}")
                             data = json.loads(response.text)
